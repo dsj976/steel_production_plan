@@ -8,6 +8,7 @@ class Base(DeclarativeBase):
 
 class Group(Base):
     """Table to store product groups."""
+
     __tablename__ = "groups"
 
     id = Column(Integer, primary_key=True)
@@ -22,6 +23,7 @@ class Group(Base):
 
 class Grade(Base):
     """Table to store steel grades."""
+
     __tablename__ = "grades"
 
     id = Column(Integer, primary_key=True)
@@ -37,10 +39,9 @@ class Grade(Base):
 
 class DailySchedule(Base):
     """Table to store daily schedules."""
+
     __tablename__ = "daily_schedule"
-    __table_args__ = (
-        UniqueConstraint("date", "heat_number", name = "unique_heat_per_day")
-    )
+    __table_args__ = UniqueConstraint("date", "heat_number", name="unique_heat_per_day")
 
     id = Column(Integer, primary_key=True)
     heat_number = Column(Integer, nullable=False)
@@ -57,6 +58,7 @@ class MonthlyGroupPlan(Base):
     Table to store the number of heats produced each month
     for each product group.
     """
+
     __tablename__ = "monthly_group_plan"
 
     id = Column(Integer, primary_key=True)
