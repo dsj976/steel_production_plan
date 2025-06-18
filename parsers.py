@@ -4,7 +4,7 @@ from io import BytesIO
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
-from models import Grade, DailySchedule
+from models import Grade, DailySchedule, Group, MonthlyGroupPlan
 
 
 class DailyScheduleParser:
@@ -83,7 +83,8 @@ class MonthlyGroupParser:
     def _read_excel(self):
         """
         Read Excel file and perform Pandas pre-processing to obtain
-        a DataFrame with columns: ['Date', 'Rebar', 'MBQ', 'SBQ', 'CHQ']
+        a DataFrame with columns corresponding to different group names,
+        indexed by date.
         """
         df = pd.read_excel(BytesIO(self.contents), header=1, na_values=["-", "N/A", ""])
         df.set_index(df.columns[0], inplace=True)
@@ -96,7 +97,35 @@ class MonthlyGroupParser:
         self.df = df
 
     def _add_to_db(self):
-        pass
+        """
+        Adds new quality groups to to the 'groups' table and
+        monthly group plans to the 'monthly_group_plan' table
+        by looping through the pre-processed DataFrame. Raises
+        error if monthly plan for given group and month already
+        exists in the table.
+        """
+
+        for group_name in self.df.columns:
+            group = self.db.query(Group).filter_by(name=group_name.strip()).first()
+            if not group:
+                # if group not in "groups" table, add it
+                group = Group(name=group_name.strip())
+                self.db.add(group)
+                self.db.commit()
+            for month, heats in self.df[group_name].items():
+                monthly_plan = (
+                    self.db.query(MonthlyGroupPlan)
+                    .filter_by(month=month.date(), group=group)
+                    .first()
+                )
+                if monthly_plan:
+                    msg = f"An entry already exists for {group_name} for {month.date()}"
+                    raise HTTPException(status_code=400, detail=msg)
+                monthly_plan = MonthlyGroupPlan(
+                    month=month.date(), group_id=group.id, heats=heats
+                )
+                self.db.add(monthly_plan)
+                self.db.commit()
 
     def __call__(self):
         self._read_excel()
