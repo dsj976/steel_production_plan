@@ -42,11 +42,10 @@ class DailySchedule(Base):
 
     __tablename__ = "daily_schedule"
     __table_args__ = (
-        UniqueConstraint("date", "heat_number", name="unique_heat_per_day"),
+        UniqueConstraint("date", "time_start", name="unique_heat_per_day"),
     )
 
     id = Column(Integer, primary_key=True)
-    heat_number = Column(Integer, nullable=False)
     date = Column(Date, nullable=False)
     time_start = Column(Time, nullable=True)
     grade_id = Column(Integer, ForeignKey("grades.id"), nullable=False)
