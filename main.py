@@ -8,7 +8,7 @@ app = FastAPI(
     description=(
         "An API to ingest steel production plans in different formats and "
         "forecast next month's production."
-    )
+    ),
 )
 
 

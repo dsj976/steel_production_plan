@@ -41,7 +41,9 @@ class DailySchedule(Base):
     """Table to store daily schedules."""
 
     __tablename__ = "daily_schedule"
-    __table_args__ = (UniqueConstraint("date", "heat_number", name="unique_heat_per_day"),)
+    __table_args__ = (
+        UniqueConstraint("date", "heat_number", name="unique_heat_per_day"),
+    )
 
     id = Column(Integer, primary_key=True)
     heat_number = Column(Integer, nullable=False)
