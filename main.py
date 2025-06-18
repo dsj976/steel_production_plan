@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
+
 from engine import get_db, init_db
+from parsers import parse_daily_schedule, parse_monthly_groups, parse_steel_production
 
 
 app = FastAPI(
@@ -21,7 +23,21 @@ def upload_file(
     filename = file.filename.lower()
 
     if not filename.endswith(".xlsx"):
-        raise HTTPException(status_code=400, detail="Only .xlsx files are supported.")
+        msg = "Only .xlsx files are supported."
+        raise HTTPException(status_code=400, detail=msg)
+
+    contents = file.file.read()
+
+    try:
+        if "daily_charge_schedule" in filename:
+            parse_daily_schedule(contents, db)
+        if "product_groups_monthly" in filename:
+            parse_monthly_groups(contents, db)
+        if "steel_grade_production" in filename:
+            parse_steel_production(contents, db)
+    except Exception as e:
+        msg = f"Failed to parse {filename}: {e}"
+        raise HTTPException(status_code=500, detail=msg)
 
 
 @app.on_event("startup")
