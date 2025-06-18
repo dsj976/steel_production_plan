@@ -2,7 +2,6 @@ from typing import Any
 import pandas as pd
 from io import BytesIO
 from sqlalchemy.orm import Session
-from fastapi import HTTPException
 
 from models import Grade, DailySchedule, Group, MonthlyGroupPlan
 
@@ -58,7 +57,7 @@ class DailyScheduleParser:
             )
             if daily_charge:
                 msg = f"Start time {row['Start time']} already exists for {row['Date'].date()}."
-                raise HTTPException(status_code=400, detail=msg)
+                raise Exception(msg)
             schedule = DailySchedule(
                 date=row["Date"],
                 time_start=row["Start time"],
@@ -122,7 +121,7 @@ class MonthlyGroupParser:
                 )
                 if monthly_plan:
                     msg = f"An entry already exists for {group_name} for {month.date()}"
-                    raise HTTPException(status_code=400, detail=msg)
+                    raise Exception(msg)
                 monthly_plan = MonthlyGroupPlan(
                     month=month.date(), group_id=group.id, heats=heats
                 )
