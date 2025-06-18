@@ -90,9 +90,8 @@ class MonthlyGroupParser:
         df = df.transpose()
         df.columns.set_names(None, inplace=True)
         df.index.set_names("Date", inplace=True)
-        df.reset_index(inplace=True)
-        # round the "Date" column to start of the month
-        df["Date"] = pd.to_datetime(df["Date"]).dt.to_period("M").dt.to_timestamp()
+        # round the "Date" index to start of the month
+        df.index = pd.to_datetime(df.index).to_period("M").to_timestamp()
 
         self.df = df
 
