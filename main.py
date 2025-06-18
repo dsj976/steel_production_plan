@@ -32,12 +32,15 @@ def upload_file(
         if "daily_charge_schedule" in filename:
             daily_schedule_parser = DailyScheduleParser(contents, db)
             daily_schedule_parser()
-        if "product_groups_monthly" in filename:
+        elif "product_groups_monthly" in filename:
             monthly_group_parser = MonthlyGroupParser(contents, db)
             monthly_group_parser()
-        if "steel_grade_production" in filename:
+        elif "steel_grade_production" in filename:
             steel_production_parser = SteelProductionParser(contents, db)
             steel_production_parser()
+        else:
+            msg = "Filename not supported."
+            raise Exception(msg)
     except Exception as e:
         msg = f"Failed to parse {filename}: {e}"
         raise HTTPException(status_code=500, detail=msg)
