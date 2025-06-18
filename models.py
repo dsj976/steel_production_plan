@@ -63,6 +63,9 @@ class MonthlyGroupPlan(Base):
     """
 
     __tablename__ = "monthly_group_plan"
+    __table_args__ = (
+        UniqueConstraint("month", "group_id", name="unique_group_per_month"),
+    )
 
     id = Column(Integer, primary_key=True)
     month = Column(Date, nullable=False)
