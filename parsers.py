@@ -1,3 +1,4 @@
+from typing import Any
 import pandas as pd
 from io import BytesIO
 from sqlalchemy.orm import Session
@@ -70,13 +71,37 @@ class DailyScheduleParser:
         self._add_to_db()
 
 
-def parse_monthly_groups(contents: bytes, db: Session):
+class MonthlyGroupParser:
     """
-    Parse the `product_groups_monthly.xlsx` file and upload to database.
+    Parser for the `product_groups_monthly.xlsx` file.
     """
-    df = pd.read_excel(BytesIO(contents))
 
-    return
+    def __init__(self, contents: bytes, db: Session):
+        self.contents = contents
+        self.db = db
+
+    def _read_excel(self):
+        """
+        Read Excel file and perform Pandas pre-processing to obtain
+        a DataFrame with columns: ['Date', 'Rebar', 'MBQ', 'SBQ', 'CHQ']
+        """
+        df = pd.read_excel(BytesIO(self.contents), header=1, na_values=["-", "N/A", ""])
+        df.set_index(df.columns[0], inplace=True)
+        df = df.transpose()
+        df.columns.set_names(None, inplace=True)
+        df.index.set_names("Date", inplace=True)
+        df.reset_index(inplace=True)
+        # round the "Date" column to start of the month
+        df["Date"] = pd.to_datetime(df["Date"]).dt.to_period("M").dt.to_timestamp()
+
+        self.df = df
+
+    def _add_to_db(self):
+        pass
+
+    def __call__(self):
+        self._read_excel()
+        self._add_to_db()
 
 
 def parse_steel_production(contents: bytes, db: Session):
