@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
 
 from engine import get_db, init_db
-from parsers import parse_daily_schedule, parse_monthly_groups, parse_steel_production
+from parsers import DailyScheduleParser, parse_monthly_groups, parse_steel_production
 
 
 app = FastAPI(
@@ -30,7 +30,8 @@ def upload_file(
 
     try:
         if "daily_charge_schedule" in filename:
-            parse_daily_schedule(contents, db)
+            daily_schedule_parser = DailyScheduleParser(contents, db)
+            daily_schedule_parser()
         if "product_groups_monthly" in filename:
             parse_monthly_groups(contents, db)
         if "steel_grade_production" in filename:

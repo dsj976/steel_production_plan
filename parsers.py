@@ -6,49 +6,68 @@ from fastapi import HTTPException
 from models import Grade, DailySchedule
 
 
-def parse_daily_schedule(contents: bytes, db: Session):
+class DailyScheduleParser:
     """
-    Parse the `daily_charge_schedule.xlsx` file and upload to database.
+    Parser for the `daily_charge_schedule.xlsx` file.
     """
 
-    # Perform Pandas pre-processing to obtain DataFrame with columns:
-    # ["Date", "Start time", "Grade", "Mould size"]
+    def __init__(self, contents: bytes, db: Session):
+        self.contents = contents
+        self.db = db
 
-    df = pd.read_excel(BytesIO(contents), header=[1, 2], na_values=["-", "N/A", ""])
-    df = df.stack(level=0, future_stack=True)
-    df["Start time"] = pd.to_datetime(df["Start time"], errors="coerce").dt.time
-    df.index.set_names([None, "Date"], inplace=True)
-    df.reset_index(level="Date", inplace=True)
-    df.sort_values(["Date", "Start time"], inplace=True)
-    df.dropna(subset=["Start time", "Grade"], inplace=True)
-    df.reset_index(drop=True, inplace=True)
+    def _read_excel(self):
+        """
+        Read Excel file and Perform Pandas pre-processing to obtain
+        a DataFrame with columns: ["Date", "Start time", "Grade", "Mould size"]
+        """
 
-    # iterate through rows and add entries to DB
-    for _, row in df.iterrows():
-        grade_name = row["Grade"].strip()
-        grade = db.query(Grade).filter_by(name=grade_name).first()
-        if not grade:
-            # if grade not in "grades" table, add it
-            grade = Grade(name=grade_name)
-            db.add(grade)
-            db.commit()
-
-        daily_charge = (
-            db.query(DailySchedule)
-            .filter_by(date=row["Date"], time_start=row["Start time"])
-            .first()
+        df = pd.read_excel(
+            BytesIO(self.contents), header=[1, 2], na_values=["-", "N/A", ""]
         )
-        if daily_charge:
-            msg = f"Start time {row['Start time']} already exists for {row['Date'].date()}."
-            raise HTTPException(status_code=400, detail=msg)
-        schedule = DailySchedule(
-            date=row["Date"],
-            time_start=row["Start time"],
-            grade_id=grade.id,
-            mould_size=row["Mould size"].strip(),
-        )
-        db.add(schedule)
-        db.commit()
+        df = df.stack(level=0, future_stack=True)
+        df["Start time"] = pd.to_datetime(df["Start time"], errors="coerce").dt.time
+        df.index.set_names([None, "Date"], inplace=True)
+        df.reset_index(level="Date", inplace=True)
+        df.sort_values(["Date", "Start time"], inplace=True)
+        df.dropna(subset=["Start time", "Grade"], inplace=True)
+        df.reset_index(drop=True, inplace=True)
+
+        self.df = df
+
+    def _add_to_db(self):
+        """
+        Iterates through the rows of the DataFrame and adds entries
+        to the 'grades' and 'daily_schedule' database tables.
+        """
+        for _, row in self.df.iterrows():
+            grade_name = row["Grade"].strip()
+            grade = self.db.query(Grade).filter_by(name=grade_name).first()
+            if not grade:
+                # if grade not in "grades" table, add it
+                grade = Grade(name=grade_name)
+                self.db.add(grade)
+                self.db.commit()
+
+            daily_charge = (
+                self.db.query(DailySchedule)
+                .filter_by(date=row["Date"], time_start=row["Start time"])
+                .first()
+            )
+            if daily_charge:
+                msg = f"Start time {row['Start time']} already exists for {row['Date'].date()}."
+                raise HTTPException(status_code=400, detail=msg)
+            schedule = DailySchedule(
+                date=row["Date"],
+                time_start=row["Start time"],
+                grade_id=grade.id,
+                mould_size=row["Mould size"].strip(),
+            )
+            self.db.add(schedule)
+            self.db.commit()
+
+    def __call__(self):
+        self._read_excel()
+        self._add_to_db()
 
 
 def parse_monthly_groups(contents: bytes, db: Session):
