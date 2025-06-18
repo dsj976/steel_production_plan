@@ -38,7 +38,9 @@ class DailyScheduleParser:
     def _add_to_db(self):
         """
         Iterates through the rows of the DataFrame and adds entries
-        to the 'grades' and 'daily_schedule' database tables.
+        to the 'grades' and 'daily_schedule' database tables. Raises
+        error if a start time already exists for a given date in the
+        table.
         """
         for _, row in self.df.iterrows():
             grade_name = row["Grade"].strip()
