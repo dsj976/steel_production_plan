@@ -28,7 +28,7 @@ class Grade(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(20), nullable=False, unique=True)
-    group_id = Column(Integer, ForeignKey("groups.id"))
+    group_id = Column(Integer, ForeignKey("groups.id"), nullable=True)
 
     group = relationship("Group", back_populates="grades")
     heats = relationship("DailySchedule", back_populates="grade")
