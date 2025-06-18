@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
 
 from engine import get_db, init_db
-from parsers import DailyScheduleParser, MonthlyGroupParser, parse_steel_production
+from parsers import DailyScheduleParser, MonthlyGroupParser, SteelProductionParser
 
 
 app = FastAPI(
@@ -36,7 +36,8 @@ def upload_file(
             monthly_group_parser = MonthlyGroupParser(contents, db)
             monthly_group_parser()
         if "steel_grade_production" in filename:
-            parse_steel_production(contents, db)
+            steel_production_parser = SteelProductionParser(contents, db)
+            steel_production_parser()
     except Exception as e:
         msg = f"Failed to parse {filename}: {e}"
         raise HTTPException(status_code=500, detail=msg)

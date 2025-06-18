@@ -134,10 +134,28 @@ class MonthlyGroupParser:
         self._add_to_db()
 
 
-def parse_steel_production(contents: bytes, db: Session):
+class SteelProductionParser:
     """
-    Parse the `steel_grade_production.xlsx` file and upload to database.
+    Parser for the `steel_grade_production.xlsx` file.
     """
-    df = pd.read_excel(BytesIO(contents))
 
-    return
+    def __init__(self, contents: bytes, db: Session):
+        self.contents = contents
+        self.db = db
+
+    def _read_excel(self):
+        df = pd.read_excel(BytesIO(self.contents), header=1)
+        df["Quality group"] = df["Quality group"].ffill()
+        df = df.set_index(["Quality group", "Grade"])
+        df = df.transpose()
+        # round the date index to start of the month
+        df.index = pd.to_datetime(df.index).to_period("M").to_timestamp()
+
+        self.df = df
+
+    def _add_to_db(self):
+        pass
+
+    def __call__(self):
+        self._read_excel()
+        self._add_to_db()
