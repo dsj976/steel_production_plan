@@ -65,11 +65,14 @@ def upload_file(
 
 
 @app.get("/forecast")
-def forecast_production(method: str = "average", db=Depends(get_db)):
+def forecast_production(
+    method: str = "average", decay_rate: float = 0.01, db=Depends(get_db)
+):
     """
     Forecast the grade-level production for the next month
     based on historical data.
-    The method can be 'average' or 'weighted_average'.
+    The method can be 'average' or 'weighted_average'. If the
+    method is 'weighted_average', a decay rate can be specified.
     """
 
     try:
@@ -86,13 +89,12 @@ def forecast_production(method: str = "average", db=Depends(get_db)):
             forecast = calculate_forecast(
                 monthly_breakdown=monthly_breakdown,
                 method=method,
+                decay_rate=decay_rate,
             )
             forecast = math.ceil(
                 forecast / 100
             )  # convert tons to number of heats assuming 1 heat = 100 tons
-            forecasts.append(
-                {"grade": grade.name, "heats": forecast}
-            )
+            forecasts.append({"grade": grade.name, "heats": forecast})
 
         # forecast month is last month + 1 month
         month = monthly_breakdown[-1].month
