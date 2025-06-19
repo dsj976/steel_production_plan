@@ -54,6 +54,14 @@ class DailySchedule(Base):
 
     grade = relationship("Grade", back_populates="heats")
 
+    def __repr__(self):
+        return (
+            f"<DailySchedule(date='{self.date}', "
+            f"time_start='{self.time_start}', "
+            f"grade='{self.grade}', "
+            f"mould_size='{self.mould_size}')>"
+        )
+
 
 class MonthlyGroupPlan(Base):
     """
@@ -73,6 +81,13 @@ class MonthlyGroupPlan(Base):
 
     group = relationship("Group", back_populates="heats")
 
+    def __repr__(self):
+        return (
+            f"<MonthlyGroupPlan(month='{self.month}', "
+            f"group='{self.group}', "
+            f"heats='{self.heats}')>"
+        )
+
 
 class MonthlyBreakdown(Base):
     """
@@ -91,3 +106,10 @@ class MonthlyBreakdown(Base):
     tons = Column(Integer, nullable=False)
 
     grade = relationship("Grade", back_populates="tons")
+
+    def __repr__(self):
+        return (
+            f"<MonthlyBreakdown(month='{self.month}', "
+            f"grade='{self.grade}', "
+            f"tons='{self.tons}')>"
+        )
