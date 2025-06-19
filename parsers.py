@@ -158,6 +158,7 @@ class SteelProductionParser:
         """
         try:
             df = pd.read_excel(BytesIO(self.contents), header=1)
+            df = df.dropna(axis=1, how="all")
             df["Quality group"] = df["Quality group"].ffill()
             df = df.set_index(["Quality group", "Grade"])
             df = df.transpose()
