@@ -1,4 +1,3 @@
-from typing import Any
 import pandas as pd
 from io import BytesIO
 from sqlalchemy.orm import Session
