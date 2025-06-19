@@ -72,37 +72,41 @@ def forecast_production(method: str = "average", db=Depends(get_db)):
     The method can be 'average' or 'weighted_average'.
     """
 
-    # find grades with production history
-    grades = db.query(Grade).filter(Grade.tons != None).all()
-    # fetch the production history for each grade, ordered by month
-    forecasts = []
-    for grade in grades:
-        monthly_breakdown = (
-            db.query(MonthlyBreakdown)
-            .filter_by(grade=grade)
-            .order_by(MonthlyBreakdown.month)
-        ).all()
-        forecast = calculate_forecast(
-            monthly_breakdown=monthly_breakdown,
-            method=method,
-        )
-        forecast = math.ceil(
-            forecast / 100
-        )  # convert tons to number of heats assuming 1 heat = 100 tons
-        forecasts.append(
-            {"grade": grade.name, "group": grade.group.name, "heats": forecast}
+    try:
+        # find grades with production history
+        grades = db.query(Grade).filter(Grade.tons != None).all()
+        forecasts = []
+        for grade in grades:
+            # fetch the production history for each grade
+            monthly_breakdown = (
+                db.query(MonthlyBreakdown)
+                .filter_by(grade=grade)
+                .order_by(MonthlyBreakdown.month)
+            ).all()
+            forecast = calculate_forecast(
+                monthly_breakdown=monthly_breakdown,
+                method=method,
+            )
+            forecast = math.ceil(
+                forecast / 100
+            )  # convert tons to number of heats assuming 1 heat = 100 tons
+            forecasts.append(
+                {"grade": grade.name, "group": grade.group.name, "heats": forecast}
+            )
+
+        # forecast month is last month + 1 month
+        month = monthly_breakdown[-1].month
+        forecast_month = (
+            (month.replace(day=1) + pd.DateOffset(months=1)).to_pydatetime().date()
         )
 
-    month = monthly_breakdown[-1].month
-    forecast_month = (
-        (month.replace(day=1) + pd.DateOffset(months=1)).to_pydatetime().date()
-    )
-
-    return {
-        "forecast_month": forecast_month.strftime("%Y-%m"),
-        "units": "heats",
-        "forecast": forecasts,
-    }
+        return {
+            "forecast_month": forecast_month.strftime("%Y-%m"),
+            "units": "heats",
+            "forecast": forecasts,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Forecast calculation failed: {e}")
 
 
 @app.on_event("startup")
