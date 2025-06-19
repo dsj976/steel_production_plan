@@ -3,7 +3,7 @@ import pandas as pd
 from io import BytesIO
 from sqlalchemy.orm import Session
 
-from models import Grade, DailySchedule, Group, MonthlyGroupPlan
+from models import Grade, DailySchedule, Group, MonthlyGroupPlan, MonthlyBreakdown
 
 
 class DailyScheduleParser:
@@ -154,7 +154,39 @@ class SteelProductionParser:
         self.df = df
 
     def _add_to_db(self):
-        pass
+
+        groups = self.df.columns.get_level_values(0).unique()
+
+        for group_name in groups:
+            group = self.db.query(Group).filter_by(name=group_name.strip()).first()
+            if not group:
+                group = Group(name=group_name.strip())
+                self.db.add(group)
+                self.db.commit()
+            for grade_name in self.df[group_name].columns:
+                grade = self.db.query(Grade).filter_by(name=grade_name.strip()).first()
+                if grade:
+                    grade.group = group
+                else:
+                    grade = Grade(name=grade_name.strip(), group=group)
+                    self.db.add(grade)
+                self.db.commit()
+                for month, tons in self.df[group_name, grade_name].items():
+                    monthly_breakdown = (
+                        self.db.query(MonthlyBreakdown)
+                        .filter_by(month=month.date(), grade=grade)
+                        .first()
+                    )
+                    if monthly_breakdown:
+                        monthly_breakdown.tons = tons
+                    else:
+                        monthly_breakdown = MonthlyBreakdown(
+                            month=month.date(),
+                            grade_id=grade.id,
+                            tons=tons,
+                        )
+                        self.db.add(monthly_breakdown)
+                    self.db.commit()
 
     def __call__(self):
         self._read_excel()
