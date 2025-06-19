@@ -144,6 +144,11 @@ class SteelProductionParser:
         self.db = db
 
     def _read_excel(self):
+        """
+        Read Excel file and perform Pandas pre-processing to obtain
+        a DataFrame with two column levels: Group and Grade, indexed
+        by date.
+        """
         df = pd.read_excel(BytesIO(self.contents), header=1)
         df["Quality group"] = df["Quality group"].ffill()
         df = df.set_index(["Quality group", "Grade"])
@@ -154,6 +159,14 @@ class SteelProductionParser:
         self.df = df
 
     def _add_to_db(self):
+        """
+        Adds new quality groups and steel grades to the 'groups'
+        and 'grades' tables, respectively, if they don't exist.
+        If a grade already exists, it updates the its group. Adds
+        tons of steel produced to the 'monthly_breakdown' table, updating
+        the tons if an entry already exists for a given month and
+        steel grade.
+        """
 
         groups = self.df.columns.get_level_values(0).unique()
 
