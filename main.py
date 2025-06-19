@@ -91,7 +91,7 @@ def forecast_production(method: str = "average", db=Depends(get_db)):
                 forecast / 100
             )  # convert tons to number of heats assuming 1 heat = 100 tons
             forecasts.append(
-                {"grade": grade.name, "group": grade.group.name, "heats": forecast}
+                {"grade": grade.name, "heats": forecast}
             )
 
         # forecast month is last month + 1 month
