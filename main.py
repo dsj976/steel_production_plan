@@ -6,7 +6,7 @@ import pandas as pd
 
 from engine import get_db, init_db
 from forecast import calculate_forecast
-from models import Grade, MonthlyBreakdown, Group
+from models import Grade, MonthlyBreakdown, Group, DailySchedule
 from parsers import DailyScheduleParser, MonthlyGroupParser, SteelProductionParser
 
 
@@ -145,6 +145,37 @@ def get_product_groups(db=Depends(get_db)):
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch product groups: {e}"
+        )
+
+
+@app.get("/daily_schedules")
+def get_daily_schedules(db=Depends(get_db)):
+    """Fetch the daily schedules from the daily_schedule DB table."""
+
+    try:
+        schedules = (
+            db.query(DailySchedule)
+            .order_by(DailySchedule.date, DailySchedule.time_start)
+            .all()
+        )
+        result = {}
+        for sched in schedules:
+            date_str = sched.date.strftime("%Y-%m-%d")
+            if date_str not in result:
+                result[date_str] = []
+            result[date_str].append(
+                {
+                    "time_start": sched.time_start.strftime("%H:%M")
+                    if sched.time_start
+                    else None,
+                    "grade": sched.grade.name if sched.grade else None,
+                    "mould_size": sched.mould_size,
+                }
+            )
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to fetch daily schedules: {e}"
         )
 
 

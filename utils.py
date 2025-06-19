@@ -24,14 +24,17 @@ def get_db_table(table: str, base_url: str = "http://localhost:8000"):
     Supported tables:
         - groups: product groups
         - grades: steel grades
+        - daily_schedules: daily production schedules of steel grades
     """
 
-    supported_tables = ["groups", "grades"]
+    supported_tables = ["groups", "grades", "daily_schedules"]
 
     if table == "groups":
         url = f"{base_url}/product_groups"
     elif table == "grades":
         url = f"{base_url}/steel_grades"
+    elif table == "daily_schedules":
+        url = f"{base_url}/daily_schedules"
     else:
         msg = f"Table '{table}' not supported, must be one of: {supported_tables}."
         raise ValueError(msg)
