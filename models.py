@@ -16,7 +16,6 @@ class Group(Base):
 
     grades = relationship("Grade", back_populates="group")
     heats = relationship("MonthlyGroupPlan", back_populates="group")
-    tons = relationship("MonthlyBreakdown", back_populates="group")
 
     def __repr__(self):
         return f"Group(name='{self.name}')"
@@ -88,9 +87,7 @@ class MonthlyBreakdown(Base):
 
     id = Column(Integer, primary_key=True)
     month = Column(Date, nullable=False)
-    group_id = Column(Integer, ForeignKey("groups.id"), nullable=True)
     grade_id = Column(Integer, ForeignKey("grades.id"), nullable=False)
     tons = Column(Integer, nullable=False)
 
-    group = relationship("Group", back_populates="tons")
     grade = relationship("Grade", back_populates="tons")
