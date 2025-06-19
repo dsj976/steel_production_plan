@@ -6,7 +6,7 @@ import pandas as pd
 
 from engine import get_db, init_db
 from forecast import calculate_forecast
-from models import Grade, MonthlyBreakdown, Group, DailySchedule
+from models import Grade, MonthlyBreakdown, Group, DailySchedule, MonthlyGroupPlan
 from parsers import DailyScheduleParser, MonthlyGroupParser, SteelProductionParser
 
 
@@ -176,6 +176,34 @@ def get_daily_schedules(db=Depends(get_db)):
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch daily schedules: {e}"
+        )
+
+
+@app.get("/monthly_plans")
+def get_monthly_plan(db=Depends(get_db)):
+    """Fetch monthly plans from the monthly_group_plan DB table."""
+
+    try:
+        plans = (
+            db.query(MonthlyGroupPlan)
+            .order_by(MonthlyGroupPlan.month, MonthlyGroupPlan.group_id)
+            .all()
+        )
+        result = {}
+        for plan in plans:
+            month_str = plan.month.strftime("%Y-%m")
+            if month_str not in result:
+                result[month_str] = []
+            result[month_str].append(
+                {
+                    "group": plan.group.name if plan.group else None,
+                    "heats": plan.heats,
+                }
+            )
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to fetch monthly plans: {e}"
         )
 
 
