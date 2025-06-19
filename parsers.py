@@ -20,19 +20,21 @@ class DailyScheduleParser:
         Read Excel file and Perform Pandas pre-processing to obtain
         a DataFrame with columns: ["Date", "Start time", "Grade", "Mould size"]
         """
-
-        df = pd.read_excel(
-            BytesIO(self.contents), header=[1, 2], na_values=["-", "N/A", ""]
-        )
-        df = df.stack(level=0, future_stack=True)
-        df["Start time"] = pd.to_datetime(df["Start time"], errors="coerce").dt.time
-        df.index.set_names([None, "Date"], inplace=True)
-        df.reset_index(level="Date", inplace=True)
-        df.sort_values(["Date", "Start time"], inplace=True)
-        df.dropna(subset=["Start time", "Grade"], inplace=True)
-        df.reset_index(drop=True, inplace=True)
-
-        self.df = df
+        try:
+            df = pd.read_excel(
+                BytesIO(self.contents), header=[1, 2], na_values=["-", "N/A", ""]
+            )
+            df = df.stack(level=0, future_stack=True)
+            df["Start time"] = pd.to_datetime(df["Start time"], errors="coerce").dt.time
+            df.index.set_names([None, "Date"], inplace=True)
+            df.reset_index(level="Date", inplace=True)
+            df.sort_values(["Date", "Start time"], inplace=True)
+            df.dropna(subset=["Start time", "Grade"], inplace=True)
+            df.reset_index(drop=True, inplace=True)
+            self.df = df
+        except Exception as e:
+            msg = f"Error pre-processing the Excel file for daily schedule: {e}"
+            raise ValueError(msg) from e
 
     def _add_to_db(self):
         """
@@ -88,15 +90,20 @@ class MonthlyGroupParser:
         a DataFrame with columns corresponding to different group names,
         indexed by date.
         """
-        df = pd.read_excel(BytesIO(self.contents), header=1, na_values=["-", "N/A", ""])
-        df.set_index(df.columns[0], inplace=True)
-        df = df.transpose()
-        df.columns.set_names(None, inplace=True)
-        df.index.set_names("Date", inplace=True)
-        # round the "Date" index to start of the month
-        df.index = pd.to_datetime(df.index).to_period("M").to_timestamp()
-
-        self.df = df
+        try:
+            df = pd.read_excel(
+                BytesIO(self.contents), header=1, na_values=["-", "N/A", ""]
+            )
+            df.set_index(df.columns[0], inplace=True)
+            df = df.transpose()
+            df.columns.set_names(None, inplace=True)
+            df.index.set_names("Date", inplace=True)
+            # round the "Date" index to start of the month
+            df.index = pd.to_datetime(df.index).to_period("M").to_timestamp()
+            self.df = df
+        except Exception as e:
+            msg = f"Error pre-processing the Excel file for monthly group plan: {e}"
+            raise ValueError(msg) from e
 
     def _add_to_db(self):
         """
@@ -149,14 +156,17 @@ class SteelProductionParser:
         a DataFrame with two column levels: Group and Grade, indexed
         by date.
         """
-        df = pd.read_excel(BytesIO(self.contents), header=1)
-        df["Quality group"] = df["Quality group"].ffill()
-        df = df.set_index(["Quality group", "Grade"])
-        df = df.transpose()
-        # round the date index to start of the month
-        df.index = pd.to_datetime(df.index).to_period("M").to_timestamp()
-
-        self.df = df
+        try:
+            df = pd.read_excel(BytesIO(self.contents), header=1)
+            df["Quality group"] = df["Quality group"].ffill()
+            df = df.set_index(["Quality group", "Grade"])
+            df = df.transpose()
+            # round the date index to start of the month
+            df.index = pd.to_datetime(df.index).to_period("M").to_timestamp()
+            self.df = df
+        except Exception as e:
+            msg = f"Error pre-processing the Excel file for steel production breakdown: {e}"
+            raise ValueError(msg) from e
 
     def _add_to_db(self):
         """
