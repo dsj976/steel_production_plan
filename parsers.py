@@ -37,9 +37,9 @@ class DailyScheduleParser:
     def _add_to_db(self):
         """
         Iterates through the rows of the DataFrame and adds entries
-        to the 'grades' and 'daily_schedule' database tables. Raises
-        error if a start time already exists for a given date in the
-        table.
+        to the 'grades' and 'daily_schedule' database tables. If a
+        matching entry already exists in the 'daily_schedule' table,
+        it updates it.
         """
         for _, row in self.df.iterrows():
             grade_name = row["Grade"].strip()
@@ -50,21 +50,22 @@ class DailyScheduleParser:
                 self.db.add(grade)
                 self.db.commit()
 
-            daily_charge = (
+            schedule = (
                 self.db.query(DailySchedule)
                 .filter_by(date=row["Date"], time_start=row["Start time"])
                 .first()
             )
-            if daily_charge:
-                msg = f"Start time {row['Start time']} already exists for {row['Date'].date()}."
-                raise Exception(msg)
-            schedule = DailySchedule(
-                date=row["Date"],
-                time_start=row["Start time"],
-                grade_id=grade.id,
-                mould_size=row["Mould size"].strip(),
-            )
-            self.db.add(schedule)
+            if schedule:
+                schedule.grade_id = grade.id
+                schedule.mould_size = row["Mould size"].strip()
+            else:
+                schedule = DailySchedule(
+                    date=row["Date"],
+                    time_start=row["Start time"],
+                    grade_id=grade.id,
+                    mould_size=row["Mould size"].strip(),
+                )
+                self.db.add(schedule)
             self.db.commit()
 
     def __call__(self):
@@ -101,9 +102,9 @@ class MonthlyGroupParser:
         """
         Adds new quality groups to to the 'groups' table and
         monthly group plans to the 'monthly_group_plan' table
-        by looping through the pre-processed DataFrame. Raises
-        error if monthly plan for given group and month already
-        exists in the table.
+        by looping through the pre-processed DataFrame. If a
+        matching entry already exists in the 'monthly_group_plan'
+        table, it updates it.
         """
 
         for group_name in self.df.columns:
@@ -120,12 +121,12 @@ class MonthlyGroupParser:
                     .first()
                 )
                 if monthly_plan:
-                    msg = f"An entry already exists for {group_name} for {month.date()}"
-                    raise Exception(msg)
-                monthly_plan = MonthlyGroupPlan(
-                    month=month.date(), group_id=group.id, heats=heats
-                )
-                self.db.add(monthly_plan)
+                    monthly_plan.heats = heats
+                else:
+                    monthly_plan = MonthlyGroupPlan(
+                        month=month.date(), group_id=group.id, heats=heats
+                    )
+                    self.db.add(monthly_plan)
                 self.db.commit()
 
     def __call__(self):
