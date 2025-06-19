@@ -6,7 +6,7 @@ import pandas as pd
 
 from engine import get_db, init_db
 from forecast import calculate_forecast
-from models import Grade, MonthlyBreakdown
+from models import Grade, MonthlyBreakdown, Group
 from parsers import DailyScheduleParser, MonthlyGroupParser, SteelProductionParser
 
 
@@ -107,6 +107,45 @@ def forecast_production(method: str = "average", db=Depends(get_db)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Forecast calculation failed: {e}")
+
+
+@app.get("/steel_grades")
+def get_steel_grades(db=Depends(get_db)):
+    """Fetch all steel grades in the grades DB table."""
+
+    try:
+        grades = db.query(Grade).all()
+        return [
+            {
+                "id": grade.id,
+                "name": grade.name,
+                "group": grade.group.name if grade.group else None,
+            }
+            for grade in grades
+        ]
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to fetch steel grades: {e}"
+        )
+
+
+@app.get("/product_groups")
+def get_product_groups(db=Depends(get_db)):
+    """Fetch all product groups in the groups DB table."""
+
+    try:
+        groups = db.query(Group).all()
+        return [
+            {
+                "id": group.id,
+                "group": group.name,
+            }
+            for group in groups
+        ]
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to fetch product groups: {e}"
+        )
 
 
 @app.on_event("startup")
