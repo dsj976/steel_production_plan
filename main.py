@@ -19,11 +19,27 @@ def upload_file(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
+    """
+    Process and upload to the database an Excel file (`.xlsx`) containing steel production data.
+    The filename must contain 'daily_charge_schedule', 'product_groups_monthly', or
+    'steel_grade_production'.
+    """
 
     filename = file.filename.lower()
+    accepted_filenames = [
+        "daily_charge_schedule",
+        "product_groups_monthly",
+        "steel_grade_production", 
+    ]
 
     if not filename.endswith(".xlsx"):
         msg = "Only .xlsx files are supported."
+        raise HTTPException(status_code=400, detail=msg)
+    if not any(name in filename for name in accepted_filenames):
+        msg = (
+            "Filename must contain one of the following: "
+            f"{', '.join(accepted_filenames)}."
+        )
         raise HTTPException(status_code=400, detail=msg)
 
     contents = file.file.read()
@@ -38,9 +54,6 @@ def upload_file(
         elif "steel_grade_production" in filename:
             steel_production_parser = SteelProductionParser(contents, db)
             steel_production_parser()
-        else:
-            msg = "Filename not supported."
-            raise Exception(msg)
     except Exception as e:
         msg = f"Failed to parse {filename}: {e}"
         raise HTTPException(status_code=500, detail=msg)
