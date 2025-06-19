@@ -207,6 +207,34 @@ def get_monthly_plan(db=Depends(get_db)):
         )
 
 
+@app.get("/monthly_breakdown")
+def get_monthly_breakdown(db=Depends(get_db)):
+    """Fetch the monthly production breakdown from the monthly_breakdown DB table."""
+
+    try:
+        breakdowns = (
+            db.query(MonthlyBreakdown)
+            .order_by(MonthlyBreakdown.month, MonthlyBreakdown.grade_id)
+            .all()
+        )
+        result = {}
+        for b in breakdowns:
+            month_str = b.month.strftime("%Y-%m")
+            if month_str not in result:
+                result[month_str] = []
+            result[month_str].append(
+                {
+                    "grade": b.grade.name if b.grade else None,
+                    "tons": b.tons,
+                }
+            )
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to fetch monthly breakdown: {e}"
+        )
+
+
 @app.on_event("startup")
 def startup_event():
     """Initialize the database on startup."""

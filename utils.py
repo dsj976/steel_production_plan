@@ -26,9 +26,16 @@ def get_db_table(table: str, base_url: str = "http://localhost:8000"):
         - grades: steel grades
         - daily_schedules: daily production schedules of steel grades
         - monthly_plans: monthly production plans of heats per product group
+        - monthly_breakdown: monthly production breakdown of tons per steel grade
     """
 
-    supported_tables = ["groups", "grades", "daily_schedules", "monthly_plans"]
+    supported_tables = [
+        "groups",
+        "grades",
+        "daily_schedules",
+        "monthly_plans",
+        "monthly_breakdown",
+    ]
 
     if table == "groups":
         url = f"{base_url}/product_groups"
@@ -38,6 +45,8 @@ def get_db_table(table: str, base_url: str = "http://localhost:8000"):
         url = f"{base_url}/daily_schedules"
     elif table == "monthly_plans":
         url = f"{base_url}/monthly_plans"
+    elif table == "monthly_breakdown":
+        url = f"{base_url}/monthly_breakdown"
     else:
         msg = f"Table '{table}' not supported, must be one of: {supported_tables}."
         raise ValueError(msg)
