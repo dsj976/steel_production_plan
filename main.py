@@ -1,7 +1,12 @@
+import math
+
 from sqlalchemy.orm import Session
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
+import pandas as pd
 
 from engine import get_db, init_db
+from forecast import calculate_forecast
+from models import Grade, MonthlyBreakdown
 from parsers import DailyScheduleParser, MonthlyGroupParser, SteelProductionParser
 
 
@@ -29,7 +34,7 @@ def upload_file(
     accepted_filenames = [
         "daily_charge_schedule",
         "product_groups_monthly",
-        "steel_grade_production", 
+        "steel_grade_production",
     ]
 
     if not filename.endswith(".xlsx"):
@@ -57,6 +62,47 @@ def upload_file(
     except Exception as e:
         msg = f"Failed to parse {filename}: {e}"
         raise HTTPException(status_code=500, detail=msg)
+
+
+@app.get("/forecast")
+def forecast_production(method: str = "average", db=Depends(get_db)):
+    """
+    Forecast the grade-level production for the next month
+    based on historical data.
+    The method can be 'average' or 'weighted_average'.
+    """
+
+    # find grades with production history
+    grades = db.query(Grade).filter(Grade.tons != None).all()
+    # fetch the production history for each grade, ordered by month
+    forecasts = []
+    for grade in grades:
+        monthly_breakdown = (
+            db.query(MonthlyBreakdown)
+            .filter_by(grade=grade)
+            .order_by(MonthlyBreakdown.month)
+        ).all()
+        forecast = calculate_forecast(
+            monthly_breakdown=monthly_breakdown,
+            method=method,
+        )
+        forecast = math.ceil(
+            forecast / 100
+        )  # convert tons to number of heats assuming 1 heat = 100 tons
+        forecasts.append(
+            {"grade": grade.name, "group": grade.group.name, "heats": forecast}
+        )
+
+    month = monthly_breakdown[-1].month
+    forecast_month = (
+        (month.replace(day=1) + pd.DateOffset(months=1)).to_pydatetime().date()
+    )
+
+    return {
+        "forecast_month": forecast_month.strftime("%Y-%m"),
+        "units": "heats",
+        "forecast": forecasts,
+    }
 
 
 @app.on_event("startup")
