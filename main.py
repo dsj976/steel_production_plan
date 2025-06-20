@@ -65,48 +65,83 @@ def upload_file(
 
 
 @app.get("/forecast")
-def forecast_production(
-    method: str = "average", decay_rate: float = 0.01, db=Depends(get_db)
-):
+def forecast_production(db=Depends(get_db)):
     """
-    Forecast the grade-level production for the next month
-    based on historical data.
-    The method can be 'average' or 'weighted_average'. If the
-    method is 'weighted_average', a decay rate can be specified.
+    Forecast the production of heats at grade level
+    for the next month based on historical data.
     """
 
     try:
-        # find grades with production history
-        grades = db.query(Grade).filter(Grade.tons != None).all()
-        forecasts = []
-        for grade in grades:
-            # fetch the production history for each grade
-            monthly_breakdown = (
+        groups = db.query(Group).all()
+        forecasts = {}
+        for group in groups:
+            grades = db.query(Grade).filter_by(group=group)
+            # filter the grades that have production history
+            grades = grades.filter(Grade.tons != None).all()
+            # get all breakdowns for these grades
+            grade_ids = [grade.id for grade in grades]
+            breakdowns = (
                 db.query(MonthlyBreakdown)
-                .filter_by(grade=grade)
+                .filter(MonthlyBreakdown.grade_id.in_(grade_ids))
                 .order_by(MonthlyBreakdown.month)
-            ).all()
-            forecast = calculate_forecast(
-                monthly_breakdown=monthly_breakdown,
-                method=method,
-                decay_rate=decay_rate,
+                .all()
             )
-            forecast = math.ceil(
-                forecast / 100
-            )  # convert tons to number of heats assuming 1 heat = 100 tons
-            forecasts.append({"grade": grade.name, "heats": forecast})
+            # get the production plan for this group
+            plans = (
+                db.query(MonthlyGroupPlan)
+                .filter_by(group_id=group.id)
+                .order_by(MonthlyGroupPlan.month)
+                .all()
+            )
 
-        # forecast month is last month + 1 month
-        month = monthly_breakdown[-1].month
-        forecast_month = (
-            (month.replace(day=1) + pd.DateOffset(months=1)).to_pydatetime().date()
-        )
+            group_heats_by_month = {plan.month: plan.heats for plan in plans}
 
-        return {
-            "forecast_month": forecast_month.strftime("%Y-%m"),
-            "units": "heats",
-            "forecast": forecasts,
-        }
+            # assumption: 1 heat equals 100 tons
+            grade_heats_by_month = {}
+            for b in breakdowns:
+                if b.month not in grade_heats_by_month:
+                    grade_heats_by_month[b.month] = {}
+                grade_heats_by_month[b.month][b.grade_id] = b.tons / 100
+
+            # for each steel grade, calculate its historical production
+            # ratio relative to its group
+            mean_ratios = {}  # keys will be different steel grade ids
+            for grade in grades:
+                ratios = []
+                for month, heats_by_grade in grade_heats_by_month.items():
+                    if grade.id in heats_by_grade and month in group_heats_by_month:
+                        heats = group_heats_by_month[month]
+                        if heats and heats > 0:
+                            ratio = heats_by_grade[grade.id] / heats
+                            ratios.append(ratio)
+                mean_ratios[grade.id] = sum(ratios) / len(ratios) if ratios else None
+
+            # the forecast month should be the last month in the group production
+            # plans, and should not be contained in the grade breakdowns
+            forecast_month = list(group_heats_by_month.keys())
+            forecast_month = forecast_month[-1]
+            if forecast_month in grade_heats_by_month.keys():
+                print("Warning: no month to forecast.")
+                continue
+
+            # apply the ratios calculated above to the group production plan
+            # for the forecast month
+            forecast_heats = group_heats_by_month[forecast_month]
+            forecast = dict.fromkeys(("grade", "heats"))
+            for grade in grades:
+                forecast["grade"] = grade.name
+                ratio = mean_ratios[grade.id]
+                if ratio is not None:
+                    forecast["heats"] = int(round(ratio * forecast_heats))
+                else:
+                    forecast["heats"] = None
+            forecasts[group.name] = {
+                "forecast_month": forecast_month.strftime("%Y-%m"),
+                "forecast": forecast,
+            }
+
+        return forecasts
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Forecast calculation failed: {e}")
 
