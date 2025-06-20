@@ -5,7 +5,6 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
 import pandas as pd
 
 from engine import get_db, init_db
-from forecast import calculate_forecast
 from models import Grade, MonthlyBreakdown, Group, DailySchedule, MonthlyGroupPlan
 from parsers import DailyScheduleParser, MonthlyGroupParser, SteelProductionParser
 
