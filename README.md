@@ -51,6 +51,11 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 
 This will serve the API at http://localhost:8000/docs.
 
+## Software stack
+
+- [SQLAlchemy](https://www.sqlalchemy.org/) - Used to store the steel plant's production plans in a SQLite database.
+- [FastAPI](https://fastapi.tiangolo.com/) - Used to serve the API.
+
 ## Next steps
 
 Check out the `api_demo.ipynb` notebook for a demo on how to use the API.
