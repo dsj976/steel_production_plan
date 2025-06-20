@@ -12,20 +12,14 @@ def upload_excel(file_path: str, base_url: str = "http://localhost:8000"):
 
 
 def get_forecast(
-    method: str = "average",
-    decay_rate: float = 0.01,
     base_url: str = "http://localhost:8000",
 ):
     """
-    Get the steel production forecast for next month.
-
-    Two methods are available: 'average' or 'weighted_average'.
-    If using 'weighted_average', you can specify a 'decay_rate'.
+    Get the grade-level production forecast for next month.
     """
 
     url = f"{base_url}/forecast"
-    params = {"method": method, "decay_rate": decay_rate}
-    response = requests.get(url, params=params)
+    response = requests.get(url)
     return response
 
 
