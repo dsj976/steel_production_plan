@@ -66,8 +66,10 @@ def upload_file(
 @app.get("/forecast")
 def forecast_production(db=Depends(get_db)):
     """
-    Forecast the production of heats at grade level
-    for the next month based on historical data.
+    Forecast the production of heats at grade level for the
+    next month based on historical data. The mean contribution
+    of each grade to its corresponding group is applied to the
+    planned group production for the forecasted month.
     """
 
     try:
