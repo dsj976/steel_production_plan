@@ -126,16 +126,16 @@ def forecast_production(db=Depends(get_db)):
             # apply the ratios calculated above to the group production plan
             # for the forecast month
             forecast_heats = group_heats_by_month[forecast_month]
-            forecast = dict.fromkeys(("grade", "heats"))
+            forecast = {}
             for grade in grades:
-                forecast["grade"] = grade.name
                 ratio = mean_ratios[grade.id]
                 if ratio is not None:
-                    forecast["heats"] = int(round(ratio * forecast_heats))
+                    forecast[grade.name] = int(round(ratio * forecast_heats))
                 else:
-                    forecast["heats"] = None
+                    forecast[grade.name] = None
             forecasts[group.name] = {
                 "forecast_month": forecast_month.strftime("%Y-%m"),
+                "units": "heats",
                 "forecast": forecast,
             }
 
